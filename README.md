@@ -1,28 +1,42 @@
-# Adaptive Sudoku
+# Adaptive Sudoku CLI
 
-A Python CLI Sudoku project built with TDD. The first version focuses on a clean game core, then layers on adaptive difficulty based on observed player behavior.
+A Python command-line Sudoku game built using Test-Driven Development (TDD).
 
-## Roadmap
+The long-term goal of this project is to create an adaptive Sudoku experience that adjusts puzzle difficulty based on player skill and behavior. Instead of relying only on fixed difficulty levels, the game will eventually analyze player performance and dynamically select puzzles that provide an appropriate challenge.
 
-1. Board rules and validation.
-2. Solver with uniqueness checks.
-3. Puzzle generation by difficulty.
-4. Playable CLI.
-5. Player skill tracking and adaptive difficulty.
+## Features
 
-## TDD Workflow
+### Implemented
 
-```powershell
+* Sudoku board representation
+* Move validation
+* Unit tests using Pytest
+* TDD-based development workflow
+
+### Planned
+
+* Sudoku solver with uniqueness checks
+* Puzzle generation by difficulty
+* Interactive command-line interface
+* Player skill tracking
+* Adaptive difficulty selection
+* Save and load functionality
+
+## Installation
+
+```bash
+git clone https://github.com/nulllvector/adaptive-sudoku-cli.git
+cd adaptive-sudoku-cli
+pip install -e .
+```
+
+## Running Tests
+
+```bash
 python -m pytest
 ```
 
-For every feature:
-
-1. Write a failing test.
-2. Implement the smallest useful behavior.
-3. Refactor with the tests passing.
-
-## Architecture
+## Project Structure
 
 ```text
 src/sudoku/
@@ -36,3 +50,24 @@ src/sudoku/
   storage.py       Local profile and save data.
   cli.py           Terminal interface.
 ```
+
+## Development Process
+
+This project follows the Test-Driven Development (TDD) cycle:
+
+1. Write a failing test.
+2. Implement the smallest amount of code needed to pass.
+3. Refactor while keeping all tests green.
+
+## Roadmap
+
+1. Complete board validation and game rules.
+2. Implement a Sudoku solver.
+3. Generate puzzles with guaranteed unique solutions.
+4. Build a playable CLI experience.
+5. Add player analytics and adaptive difficulty.
+6. Improve persistence and user profiles.
+
+## License
+
+This project is currently for learning and experimentation.
