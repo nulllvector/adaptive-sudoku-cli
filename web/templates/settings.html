@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+
+{% block title %}Settings — Adaptive Sudoku{% endblock %}
+
+{% block content %}
+<div class="settings-wrapper">
+    <div class="settings-card glass-panel animate-fade-in" id="settings-container-card">
+        <h1 class="page-title">Personal Settings</h1>
+        <p class="page-subtitle">Configure your custom Sudoku solver view preferences</p>
+        
+        <form method="POST" class="settings-form" id="settings-form">
+            <!-- Theme Settings Option -->
+            <div class="settings-group">
+                <div class="settings-info">
+                    <h3 class="settings-item-title">App Color Palette</h3>
+                    <p class="settings-item-desc">Choose between a premium dark theme or an ambient light theme</p>
+                </div>
+                <div class="settings-control">
+                    <select name="theme" class="select-dropdown" id="settings-theme-select">
+                        <option value="dark" {% if settings.theme == 'dark' %}selected{% endif %}>Premium Dark</option>
+                        <option value="light" {% if settings.theme == 'light' %}selected{% endif %}>Ambient Light</option>
+                    </select>
+                </div>
+            </div>
+            
+            <hr class="settings-divider">
+            
+            <!-- Toggle Switches Option 1: Timer -->
+            <div class="settings-group">
+                <div class="settings-info">
+                    <h3 class="settings-item-title">Visual Time Clock</h3>
+                    <p class="settings-item-desc">Display a running timer during your solving session</p>
+                </div>
+                <div class="settings-control">
+                    <label class="toggle-switch">
+                        <input type="checkbox" name="show_timer" id="toggle-show-timer" {% if settings.show_timer %}checked{% endif %}>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+            
+            <hr class="settings-divider">
+            
+            <!-- Toggle Switches Option 2: Highlight Errors -->
+            <div class="settings-group">
+                <div class="settings-info">
+                    <h3 class="settings-item-title">Real-time Rule Violations</h3>
+                    <p class="settings-item-desc">Highlight direct duplicates (invalid moves) in amber immediately</p>
+                </div>
+                <div class="settings-control">
+                    <label class="toggle-switch">
+                        <input type="checkbox" name="highlight_errors" id="toggle-highlight-errors" {% if settings.highlight_errors %}checked{% endif %}>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+            
+            <hr class="settings-divider">
+            
+            <!-- Toggle Switches Option 3: Highlight Related -->
+            <div class="settings-group">
+                <div class="settings-info">
+                    <h3 class="settings-item-title">Highlight Intersections</h3>
+                    <p class="settings-item-desc">Dimly highlight the row, column, and subgrid of your selected cell</p>
+                </div>
+                <div class="settings-control">
+                    <label class="toggle-switch">
+                        <input type="checkbox" name="highlight_related" id="toggle-highlight-related" {% if settings.highlight_related %}checked{% endif %}>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+            
+            <div class="settings-actions">
+                <button type="submit" class="btn btn-primary" id="save-settings-btn">Save Configurations</button>
+            </div>
+        </form>
+        
+        <hr class="settings-divider">
+        
+        <!-- Danger Zone Section -->
+        <div class="danger-zone animate-fade-in" style="margin-top: 24px;">
+            <h4 class="danger-title">Danger Zone</h4>
+            <p class="danger-desc">Permanently delete your account, completed puzzle stats, active game sessions, preferences, and leaderboard rankings. This action is completely irreversible.</p>
+            
+            <form action="{{ url_for('main.delete_account') }}" method="POST" onsubmit="return confirm('WARNING: Are you absolutely sure you want to permanently delete your account? This will wipe your rating, settings, completed games, and active sessions. This action is completely irreversible!');" id="delete-account-form">
+                <button type="submit" class="btn btn-danger btn-sm" id="delete-account-btn">Delete My Account Permanently</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -22,15 +22,16 @@ GIVEN_RANGES: dict[Difficulty, range] = {
 
 def difficulty_for_skill(score: int) -> Difficulty:
     score = max(0, min(100, score))
-    if score <= 20:
+    if score < 20:
         return Difficulty.BEGINNER
-    if score <= 40:
+    if score < 40:
         return Difficulty.EASY
-    if score <= 60:
+    if score < 60:
         return Difficulty.MEDIUM
-    if score <= 80:
+    if score < 80:
         return Difficulty.HARD
     return Difficulty.EXPERT
+
 
 
 def step_toward(current: Difficulty, target: Difficulty) -> Difficulty:

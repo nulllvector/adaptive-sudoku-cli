@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block title %}Sign Up — Adaptive Sudoku{% endblock %}
+
+{% block content %}
+<div class="auth-wrapper">
+    <div class="auth-card glass-panel animate-fade-in" id="register-auth-card">
+        <h1 class="auth-title">Create Account</h1>
+        <p class="auth-subtitle">Sign up to play Sudoku that adapts to your brain</p>
+        
+        <form method="POST" class="auth-form" id="register-form">
+            <div class="form-group">
+                <input type="text" id="username" name="username" class="form-input" placeholder=" " required autocomplete="username">
+                <label for="username" class="form-label">Username</label>
+            </div>
+            
+            <div class="form-group">
+                <input type="password" id="password" name="password" class="form-input" placeholder=" " required autocomplete="new-password">
+                <label for="password" class="form-label">Password</label>
+            </div>
+            
+            <button type="submit" class="btn btn-secondary btn-block" id="register-submit-btn">
+                <span>Start Playing</span>
+            </button>
+        </form>
+        
+        <div class="auth-footer">
+            <p>Already have an account? <a href="{{ url_for('auth.login') }}" class="auth-link">Login here</a></p>
+        </div>
+    </div>
+</div>
+{% endblock %}

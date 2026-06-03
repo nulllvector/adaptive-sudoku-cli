@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="{{ current_user.settings.theme if current_user.is_authenticated else 'dark' }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Adaptive Sudoku{% endblock %}</title>
+    
+    <!-- Meta tags for SEO & responsiveness -->
+    <meta name="description" content="A premium, adaptive difficulty Sudoku web game that tracks your skill and challenges you dynamically.">
+    <meta name="theme-color" content="#0b0f19">
+    
+    <!-- Google Fonts: Outfit for headers, Inter for UI -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Main Style Sheet -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body class="{% block body_class %}{% endblock %}">
+    <!-- Top Glassmorphic Navigation -->
+    <nav class="navbar" id="main-nav">
+        <div class="nav-container">
+            <a href="{{ url_for('main.home') }}" class="nav-brand" id="nav-brand-logo">
+                <span class="logo-accent">Adaptive</span>Sudoku
+            </a>
+            <div class="nav-menu" id="nav-links">
+                {% if current_user.is_authenticated %}
+                    <span class="nav-user-display" id="nav-username" style="color: var(--accent-cyan); font-family: 'Outfit', sans-serif; font-weight: 600; margin-right: 8px; font-size: 14px;">{{ current_user.username }}</span>
+                    <a href="{{ url_for('main.home') }}" class="nav-link {% if request.endpoint == 'main.home' %}active{% endif %}" id="nav-link-home">Home</a>
+                    <a href="{{ url_for('main.leaderboard') }}" class="nav-link {% if request.endpoint == 'main.leaderboard' %}active{% endif %}" id="nav-link-leaderboard">Leaderboard</a>
+                    <a href="{{ url_for('main.settings') }}" class="nav-link {% if request.endpoint == 'main.settings' %}active{% endif %}" id="nav-link-settings">Settings</a>
+                    <a href="{{ url_for('auth.logout') }}" class="nav-btn-logout" id="nav-link-logout">Logout</a>
+                {% else %}
+                    <a href="{{ url_for('auth.login') }}" class="nav-link {% if request.endpoint == 'auth.login' %}active{% endif %}" id="nav-link-login">Login</a>
+                    <a href="{{ url_for('auth.register') }}" class="nav-btn-signup" id="nav-link-register">Sign Up</a>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="content-container">
+        <!-- Flash Alert Notification Banner Container -->
+        <div class="flash-messages-container" id="alerts-container">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }} animate-fade-in" role="alert">
+                            <span class="alert-message">{{ message }}</span>
+                            <button type="button" class="alert-close-btn" onclick="this.parentElement.remove();">&times;</button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        </div>
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Premium Footer -->
+    <footer class="footer">
+        <p>&copy; 2026 Adaptive Sudoku Core. Crafted with TDD and Premium UX.</p>
+    </footer>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

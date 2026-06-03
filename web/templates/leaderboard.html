@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block title %}Leaderboard — Adaptive Sudoku{% endblock %}
+
+{% block content %}
+<div class="leaderboard-wrapper">
+    <div class="leaderboard-card glass-panel animate-fade-in" id="leaderboard-card-container">
+        <h1 class="page-title">Leaderboard Rankings</h1>
+        <p class="page-subtitle">Ranked by Skill Rank Index (SRI) — Active solvers with at least 3 completed games</p>
+        
+        <div class="leaderboard-table-container">
+            <table class="leaderboard-table" id="leaderboard-table">
+                <thead>
+                    <tr>
+                        <th class="col-rank">Rank</th>
+                        <th class="col-player">Solvers</th>
+                        <th class="col-sri text-right">SRI Rating</th>
+                        <th class="col-difficulty text-center">Difficulty</th>
+                        <th class="col-games text-center">Completed Puzzles</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if leaderboard %}
+                        {% for entry in leaderboard %}
+                            <tr class="{% if entry.user.id == current_user.id %}current-user-row{% endif %}" id="leaderboard-row-{{ entry.rank }}">
+                                <td class="col-rank">
+                                    {% if entry.rank == 1 %}
+                                        <span class="badge badge-gold">🥇 1</span>
+                                    {% elif entry.rank == 2 %}
+                                        <span class="badge badge-silver">🥈 2</span>
+                                    {% elif entry.rank == 3 %}
+                                        <span class="badge badge-bronze">🥉 3</span>
+                                    {% else %}
+                                        <span class="rank-number">#{{ entry.rank }}</span>
+                                    {% endif %}
+                                </td>
+                                <td class="col-player">
+                                    <div class="player-info-cell">
+                                        <span class="username-display">{{ entry.user.username }}</span>
+                                        {% if entry.user.id == current_user.id %}
+                                            <span class="you-tag">YOU</span>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                                <td class="col-sri text-right bold-text accent-cyan">
+                                    {{ entry.sri|round(2) }}
+                                </td>
+                                <td class="col-difficulty text-center">
+                                    <span class="difficulty-tag diff-{{ entry.tier|lower }}">
+                                        {{ entry.tier }}
+                                    </span>
+                                </td>
+                                <td class="col-games text-center font-digits">
+                                    {{ entry.profile.games_played }}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="5" class="empty-table text-center">
+                                <p>No players have qualified for the leaderboard yet.</p>
+                                <p class="sub-text">Qualify by completing at least 3 Sudoku puzzles!</p>
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

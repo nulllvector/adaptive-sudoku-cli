@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+
+{% block title %}Summary Result — Adaptive Sudoku{% endblock %}
+
+{% block body_class %}body-viewport-fit victory-page-body{% endblock %}
+
+{% block content %}
+<div class="victory-wrapper">
+    <div class="victory-card glass-panel text-center animate-fade-in {% if game.status == 'abandoned' %}abandoned-panel{% endif %}" id="victory-card-container">
+        
+        {% if game.status == 'won' %}
+            <!-- Victory Celebrations UI Header -->
+            <div class="victory-icon-container">
+                <span class="victory-emoji-big animate-bounce">🏆</span>
+            </div>
+            <h1 class="victory-title text-glow">Puzzle Solved!</h1>
+            <p class="victory-subtitle" style="margin-bottom: 16px;">Sensational job! You solved the Sudoku puzzle and adapted your brain.</p>
+            
+            <!-- Leaderboard milestone comments -->
+            {% if current_user.profile.games_played == 3 %}
+                <div class="alert alert-rank-change animate-fade-in" style="margin: 0 auto 20px auto; max-width: 440px; text-align: center; justify-content: center; display: inline-flex;">
+                    <span class="alert-icon">🎉</span>
+                    <span class="alert-message"><strong>Milestone Achieved!</strong> You have completed 3 matches and officially entered the Leaderboard! You are now ranked <strong>#{{ rank_after if rank_after else 'N/A' }}</strong>. Welcome to the ranks!</span>
+                </div>
+            {% elif current_user.profile.games_played > 3 %}
+                <div class="alert alert-success animate-fade-in" style="margin: 0 auto 20px auto; max-width: 440px; text-align: center; justify-content: center; display: inline-flex;">
+                    <span class="alert-icon">🔥</span>
+                    <span class="alert-message"><strong>Keep climbing!</strong> Keep solving puzzles to increase your Skill Level and achieve even better ranks!</span>
+                </div>
+            {% endif %}
+        {% else %}
+            <!-- Resignation Summary UI Header -->
+            <div class="victory-icon-container">
+                <span class="victory-emoji-big animate-fade-in">🏳️</span>
+            </div>
+            <h1 class="victory-title text-red">Game Resigned</h1>
+            <p class="victory-subtitle">You opted to abandon the puzzle board. A penalty has been applied to your rating.</p>
+        {% endif %}
+        
+        <hr class="victory-divider">
+        
+        <!-- Game stats changes grid -->
+        <div class="result-stats-grid">
+            <!-- 1. Rating delta -->
+            <div class="result-stat-card">
+                <span class="result-stat-label">Rating Change</span>
+                <div class="rating-delta-display">
+                    <span class="rating-old font-digits">{{ rating_before }}</span>
+                    <span class="rating-arrow">──►</span>
+                    <span class="rating-new font-digits">{{ rating_after }}</span>
+                </div>
+                {% set rating_delta = rating_after - rating_before %}
+                <span class="delta-tag {% if rating_delta > 0 %}delta-positive{% elif rating_delta < 0 %}delta-negative{% else %}delta-neutral{% endif %}" id="rating-delta-tag">
+                    {{ '+' if rating_delta > 0 else '' }}{{ rating_delta }} Rating Points
+                </span>
+            </div>
+            
+            <!-- 2. Rank delta -->
+            {% if rank_before or rank_after %}
+                <div class="result-stat-card">
+                    <span class="result-stat-label">Leaderboard Rank</span>
+                    <div class="rank-delta-display">
+                        <span class="rank-old">{% if rank_before %}#{{ rank_before }}{% else %}Unranked{% endif %}</span>
+                        <span class="rank-arrow">──►</span>
+                        <span class="rank-new">{% if rank_after %}#{{ rank_after }}{% else %}Unranked{% endif %}</span>
+                    </div>
+                    {% if rank_before and rank_after %}
+                        {% set rank_delta = rank_before - rank_after %}
+                        {% if rank_delta > 0 %}
+                            <span class="delta-tag delta-positive" id="rank-delta-tag">▲ Climbed {{ rank_delta }} Ranks!</span>
+                        {% elif rank_delta < 0 %}
+                            <span class="delta-tag delta-negative" id="rank-delta-tag">▼ Dropped {{ -rank_delta }} Ranks</span>
+                        {% else %}
+                            <span class="delta-tag delta-neutral" id="rank-delta-tag">No Change</span>
+                        {% endif %}
+                    {% elif rank_after %}
+                        <span class="delta-tag delta-positive" id="rank-delta-tag">🎉 Entered Leaderboard at #{{ rank_after }}!</span>
+                    {% else %}
+                        <span class="delta-tag delta-negative" id="rank-delta-tag">Left Leaderboard</span>
+                    {% endif %}
+                </div>
+            {% endif %}
+        </div>
+        
+        <hr class="victory-divider">
+        
+        <!-- Interactive Call To Actions -->
+        <div class="victory-actions">
+            {% if game.status == 'abandoned' %}
+                <a href="{{ url_for('game.game') }}" class="btn btn-secondary btn-lg" id="play-again-btn">
+                    <span>Try Another Puzzle</span>
+                </a>
+            {% else %}
+                <a href="{{ url_for('game.game') }}" class="btn btn-emerald btn-lg" id="play-again-btn">
+                    <span>Play Another Game</span>
+                </a>
+            {% endif %}
+            
+            <a href="{{ url_for('main.home') }}" class="btn btn-outline btn-lg" id="go-home-btn">
+                <span>Go to Dashboard</span>
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

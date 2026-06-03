@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard — Adaptive Sudoku{% endblock %}
+
+{% block body_class %}{% if not profile.difficulty_locked %}body-viewport-fit onboarding-page-body{% endif %}{% endblock %}
+
+{% block content %}
+<div class="dashboard-wrapper">
+    <!-- Rank change warning banner (drawn custom if flashed) -->
+    {% with rank_alerts = get_flashed_messages(category_filter=['rank_alert']) %}
+        {% if rank_alerts %}
+            {% for msg in rank_alerts %}
+                <div class="alert alert-rank-change animate-fade-in" role="alert" id="rank-change-alert-banner">
+                    <span class="alert-icon">⚡</span>
+                    <span class="alert-message">{{ msg }}</span>
+                    <button type="button" class="alert-close-btn" onclick="this.parentElement.remove();">&times;</button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="dashboard-grid">
+        <!-- 1. Stats and Progress Card -->
+        <div class="card glass-panel stats-card animate-fade-in" id="dashboard-stats-card">
+            <div class="card-header">
+                <h2 class="card-title">Solvers Stats</h2>
+                <p class="card-subtitle">Your real-time rating and skill evaluation</p>
+            </div>
+            <div class="card-body">
+                <div class="rating-display-container">
+                    <div class="rating-circle">
+                        <span class="rating-value" id="sri-rating-value">{{ sri|round(2) if sri else profile.skill_score }}</span>
+                        <span class="rating-label">{% if sri %}SRI Rating{% else %}Skill Level{% endif %}</span>
+                    </div>
+                </div>
+                
+                <div class="stats-row">
+                    <div class="stat-item">
+                        <span class="stat-value text-capitalize" id="stat-difficulty">{{ tier.lower() }}</span>
+                        <span class="stat-label">Difficulty Tier</span>
+                    </div>
+                    <div class="stat-item border-left">
+                        <span class="stat-value font-digits" id="stat-games-played">{{ profile.games_played }}</span>
+                        <span class="stat-label">Puzzles Completed</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. Onboarding & Play controls Card -->
+        <div class="card glass-panel play-card animate-fade-in" id="dashboard-play-card" style="animation-delay: 0.1s;">
+            {% if not profile.difficulty_locked %}
+                <!-- Difficulty Selection Mode (Onboarding) -->
+                <div class="card-header">
+                    <h2 class="card-title">Select Starting Difficulty</h2>
+                    <p class="card-subtitle">Choose your comfort tier to lock your initial rating. This cannot be changed later unless you fully reset your account.</p>
+                </div>
+                <div class="card-body">
+                    <form action="{{ url_for('main.select_difficulty') }}" method="POST" class="difficulty-form" id="onboarding-difficulty-form">
+                        <div class="difficulty-grid">
+                            <label class="diff-option">
+                                <input type="radio" name="difficulty" value="BEGINNER" required>
+                                <div class="diff-card beginner">
+                                    <span class="diff-card-title">Beginner</span>
+                                    <span class="diff-card-rating">Starting Score: 0</span>
+                                </div>
+                            </label>
+                            
+                            <label class="diff-option">
+                                <input type="radio" name="difficulty" value="EASY" required checked>
+                                <div class="diff-card easy">
+                                    <span class="diff-card-title">Easy</span>
+                                    <span class="diff-card-rating">Starting Score: 20</span>
+                                </div>
+                            </label>
+                            
+                            <label class="diff-option">
+                                <input type="radio" name="difficulty" value="MEDIUM" required>
+                                <div class="diff-card medium">
+                                    <span class="diff-card-title">Medium</span>
+                                    <span class="diff-card-rating">Starting Score: 40</span>
+                                </div>
+                            </label>
+                            
+                            <label class="diff-option">
+                                <input type="radio" name="difficulty" value="HARD" required>
+                                <div class="diff-card hard">
+                                    <span class="diff-card-title">Hard</span>
+                                    <span class="diff-card-rating">Starting Score: 60</span>
+                                </div>
+                            </label>
+                            
+                            <label class="diff-option">
+                                <input type="radio" name="difficulty" value="EXPERT" required>
+                                <div class="diff-card expert">
+                                    <span class="diff-card-title">Expert</span>
+                                    <span class="diff-card-rating">Starting Score: 80</span>
+                                </div>
+                            </label>
+                        </div>
+                        
+                        <div class="difficulty-actions">
+                            <button type="submit" class="btn btn-primary btn-block" id="lock-difficulty-btn">Lock Difficulty & Start</button>
+                        </div>
+                    </form>
+                </div>
+            {% else %}
+                <!-- Play & Reset Game Menu -->
+                <div class="card-header">
+                    <h2 class="card-title">Play Arena</h2>
+                    <p class="card-subtitle">Generate dynamic puzzles or resume your active grids</p>
+                </div>
+                <div class="card-body play-actions-container">
+                    {% if has_active_game %}
+                        <div class="active-game-banner">
+                            <span class="active-icon">🔄</span>
+                            <div class="active-details">
+                                <span class="active-title">Resume Active Puzzle</span>
+                                <span class="active-subtitle">You have an in-progress session saved!</span>
+                            </div>
+                        </div>
+                        <a href="{{ url_for('game.game') }}" class="btn btn-emerald btn-lg btn-block text-center flex-center" id="play-button">
+                            <span>Resume Solving Grid</span>
+                        </a>
+                    {% else %}
+                        <a href="{{ url_for('game.game') }}" class="btn btn-primary btn-lg btn-block text-center flex-center" id="play-button">
+                            <span>Start Solving New Puzzle</span>
+                        </a>
+                    {% endif %}
+                    
+                    <hr class="dashboard-divider">
+                    
+                    <div class="danger-zone">
+                        <h4 class="danger-title">Danger Zone</h4>
+                        <p class="danger-desc">Resetting your account wipes your rating, completed puzzle history, and deletes any active games. You will start onboarding from scratch.</p>
+                        
+                        <form action="{{ url_for('main.reset') }}" method="POST" onsubmit="return confirm('WARNING: Are you absolutely sure you want to reset your account? This wipes all games played, resets your skill score to 0, and clears your locked difficulty. This action is irreversible!');" id="account-reset-form">
+                            <button type="submit" class="btn btn-danger btn-sm" id="reset-account-btn">Wipe & Reset Entire Account</button>
+                        </form>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

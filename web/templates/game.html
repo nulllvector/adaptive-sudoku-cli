@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+
+{% block title %}Play Arena — Adaptive Sudoku{% endblock %}
+
+{% block body_class %}body-viewport-fit game-page-body{% endblock %}
+
+{% block extra_css %}
+<!-- Embedded JSON properties for Javascript to consume without REST latency on page load -->
+<script>
+    window.gameData = {
+        id: {{ game.id }},
+        initial_board: {{ game.initial_board|safe }},
+        current_board: {{ game.current_board|safe }},
+        solution: {{ game.solution|safe }},
+        accumulated_seconds: {{ game.accumulated_seconds }},
+        started_at: "{{ game.started_at.isoformat() }}Z",
+        difficulty: "{{ game.difficulty }}",
+        settings: {
+            theme: "{{ settings.theme }}",
+            show_timer: {{ 'true' if settings.show_timer else 'false' }},
+            highlight_errors: {{ 'true' if settings.highlight_errors else 'false' }},
+            highlight_related: {{ 'true' if settings.highlight_related else 'false' }}
+        }
+    };
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="game-wrapper">
+    <div class="game-container animate-fade-in" id="game-arena-container">
+        
+        <!-- Game Play Session Header (Timer, Hints, Resign) -->
+        <div class="game-header-bar glass-panel">
+            <div class="game-meta-left">
+                <span class="difficulty-badge diff-{{ game.difficulty|lower }}">{{ game.difficulty }}</span>
+                <span class="game-hints-display" id="hints-counter-label">Hints: {{ game.hints_used }}</span>
+            </div>
+            
+            {% if settings.show_timer %}
+                <div class="game-timer-container" id="timer-wrapper">
+                    <span class="timer-icon">⏱️</span>
+                    <span class="timer-digits" id="timer-display">00:00</span>
+                </div>
+            {% endif %}
+            
+            <div class="game-meta-right">
+                <form action="{{ url_for('game.restart') }}" method="POST" onsubmit="return confirm('Are you sure you want to resign? Doing so will abandon this puzzle and deduct 6 points from your rating!');" id="resign-form">
+                    <button type="submit" class="btn btn-danger btn-sm" id="btn-resign-puzzle">Resign Game</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="game-play-area">
+            <!-- 1. Interactive 9x9 Sudoku Board -->
+            <div class="sudoku-board-outer" id="sudoku-board-outer">
+                <div class="sudoku-board-grid" id="sudoku-grid">
+                    {% for box_r in range(3) %}
+                        {% for box_c in range(3) %}
+                            <div class="sudoku-subgrid-box">
+                                {% for cell_r in range(3) %}
+                                    {% for cell_c in range(3) %}
+                                        {% set r = box_r * 3 + cell_r %}
+                                        {% set c = box_c * 3 + cell_c %}
+                                        <div class="sudoku-cell" data-row="{{ r }}" data-col="{{ c }}" id="cell-{{ r }}-{{ c }}">
+                                            <!-- Place cell value or container for pencil notes -->
+                                            <div class="cell-value-container">
+                                                <span class="cell-value"></span>
+                                            </div>
+                                            <div class="pencil-notes-grid" id="pencil-grid-{{ r }}-{{ c }}">
+                                                {% for i in range(1, 10) %}
+                                                    <span class="pencil-note" data-note-val="{{ i }}"></span>
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                {% endfor %}
+                            </div>
+                        {% endfor %}
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- 2. Controls & Actions Dashboard Panel -->
+            <div class="game-side-controls">
+                <div class="glass-panel controls-card">
+                    <h3 class="controls-title">Controls Dashboard</h3>
+                    
+                    <!-- Notes Mode Toggle Switch -->
+                    <div class="notes-toggle-wrapper">
+                        <span class="toggle-label">Pencil Notes Mode</span>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="pencil-mode-checkbox">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    
+                    <hr class="controls-divider">
+                    
+                    <!-- Direct Numeric Keypad (Excellent for mobile solvers!) -->
+                    <div class="numeric-keypad" id="numeric-keypad">
+                        {% for num in range(1, 10) %}
+                            <button type="button" class="btn keypad-btn" data-key="{{ num }}">{{ num }}</button>
+                        {% endfor %}
+                    </div>
+                    
+                    <hr class="controls-divider">
+                    
+                    <div class="utility-actions">
+                        <button type="button" class="btn btn-secondary btn-block flex-center" id="btn-erase-cell">
+                            <span class="btn-icon">🧹</span>
+                            <span>Erase Active Cell</span>
+                        </button>
+                        
+                        <button type="button" class="btn btn-emerald btn-block flex-center" id="btn-get-hint">
+                            <span class="btn-icon">💡</span>
+                            <span>Reveal a Hint</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Board Event Handler JavaScript -->
+<script src="{{ url_for('static', filename='js/game.js') }}"></script>
+{% endblock %}
