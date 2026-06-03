@@ -22,14 +22,12 @@ def get_leaderboard():
     
     leaderboard = []
     for index, (user, p, sri) in enumerate(ranked_list):
-        from sudoku.difficulty import difficulty_for_skill
-        tier = difficulty_for_skill(int(sri)).name
         leaderboard.append({
             'rank': index + 1,
             'user': user,
             'profile': p,
             'sri': sri,
-            'tier': tier
+            'tier': p.current_difficulty
         })
     return leaderboard
 
@@ -86,9 +84,8 @@ def home():
     if current_user.profile.games_played >= 3:
         sri = calculate_sri(current_user.profile.skill_score, current_user.profile.games_played)
         
-    rating = sri if sri is not None else current_user.profile.skill_score
-    from sudoku.difficulty import difficulty_for_skill
-    tier = difficulty_for_skill(int(rating)).name
+    rating = current_user.profile.skill_score
+    tier = current_user.profile.current_difficulty
         
     return render_template(
         'home.html', 
@@ -127,6 +124,11 @@ def select_difficulty():
     # Reset last_seen_rank as they are locking starting rating
     current_user.profile.last_seen_rank = None
     
+    # Abandon all active games
+    active_games = Game.query.filter_by(user_id=current_user.id, status='active').all()
+    for g in active_games:
+        g.status = 'abandoned'
+        
     db.session.commit()
     flash(f"Starting difficulty set to {diff_name}. Your starting score is {current_user.profile.skill_score}.")
     return redirect(url_for('main.home'))
@@ -142,10 +144,10 @@ def reset():
     profile.difficulty_locked = False
     profile.last_seen_rank = None
     
-    # Abandon any active game
-    active_game = Game.query.filter_by(user_id=current_user.id, status='active').first()
-    if active_game:
-        active_game.status = 'abandoned'
+    # Abandon all active games
+    active_games = Game.query.filter_by(user_id=current_user.id, status='active').all()
+    for g in active_games:
+        g.status = 'abandoned'
         
     db.session.commit()
     flash('Account reset successfully. Please select a starting difficulty.')

@@ -44,6 +44,8 @@ def game():
             status='active',
             started_at=datetime.utcnow()
         )
+        # Defensively mark any active games as abandoned to prevent lingering games / race conditions
+        Game.query.filter_by(user_id=current_user.id, status='active').update({'status': 'abandoned'})
         db.session.add(active_game)
         db.session.commit()
     else:
@@ -108,6 +110,8 @@ def move():
     
     # 5. Check correctness against final solution
     is_correct = (value == solution_grid[row][col])
+    if not is_correct:
+        game.mistakes += 1
     
     # 6. Check if won
     won = (current_grid == solution_grid)
@@ -124,7 +128,7 @@ def move():
         result = GameResult(
             completed=True,
             elapsed_seconds=elapsed,
-            mistakes=0, # No mistake penalty in the web game
+            mistakes=game.mistakes,
             hints_used=game.hints_used,
             invalid_attempts=rounded_invalid,
             filled_cells=filled_count
@@ -237,7 +241,7 @@ def hint():
         result = GameResult(
             completed=True,
             elapsed_seconds=elapsed,
-            mistakes=0,
+            mistakes=game.mistakes,
             hints_used=game.hints_used,
             invalid_attempts=rounded_invalid,
             filled_cells=filled_count
@@ -311,7 +315,7 @@ def restart():
     result = GameResult(
         completed=False,
         elapsed_seconds=elapsed,
-        mistakes=0,
+        mistakes=game.mistakes,
         hints_used=game.hints_used,
         invalid_attempts=rounded_invalid,
         filled_cells=0

@@ -42,7 +42,7 @@ def _score_delta(result: GameResult) -> int:
     else:
         delta -= 6
 
-    delta -= result.mistakes * 2
+    delta -= result.mistakes
     delta -= result.hints_used * 3
     delta -= result.invalid_attempts
 

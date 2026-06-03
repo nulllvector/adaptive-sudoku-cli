@@ -14,6 +14,7 @@
                     <tr>
                         <th class="col-rank">Rank</th>
                         <th class="col-player">Solvers</th>
+                        <th class="col-skill text-right">Skill Level</th>
                         <th class="col-sri text-right">SRI Rating</th>
                         <th class="col-difficulty text-center">Difficulty</th>
                         <th class="col-games text-center">Completed Puzzles</th>
@@ -42,7 +43,10 @@
                                         {% endif %}
                                     </div>
                                 </td>
-                                <td class="col-sri text-right bold-text accent-cyan">
+                                <td class="col-skill text-right font-digits">
+                                    {{ entry.profile.skill_score }}
+                                </td>
+                                <td class="col-sri text-right bold-text accent-cyan font-digits">
                                     {{ entry.sri|round(2) }}
                                 </td>
                                 <td class="col-difficulty text-center">
@@ -57,7 +61,7 @@
                         {% endfor %}
                     {% else %}
                         <tr>
-                            <td colspan="5" class="empty-table text-center">
+                            <td colspan="6" class="empty-table text-center">
                                 <p>No players have qualified for the leaderboard yet.</p>
                                 <p class="sub-text">Qualify by completing at least 3 Sudoku puzzles!</p>
                             </td>

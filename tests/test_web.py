@@ -138,6 +138,20 @@ def test_game_start_and_resume(client, init_database):
     active_game_2 = Game.query.filter_by(user_id=user.id, status='active').first()
     assert active_game_2.initial_board == initial_board_str
 
+def test_medium_difficulty_game_generation(client, init_database):
+    """Test that selecting MEDIUM difficulty onboarding generates a MEDIUM difficulty game in the database."""
+    client.post('/register', data={'username': 'medium_user', 'password': 'password123'})
+    client.post('/login', data={'username': 'medium_user', 'password': 'password123'})
+    client.post('/home/select-difficulty', data={'difficulty': 'MEDIUM'})
+    
+    response = client.get('/game')
+    assert response.status_code == 200
+    
+    user = User.query.filter_by(username='medium_user').first()
+    active_game = Game.query.filter_by(user_id=user.id, status='active').first()
+    assert active_game is not None
+    assert active_game.difficulty == 'MEDIUM'
+
 def test_game_invalid_attempt_rejection(client, init_database):
     """Test that invalid moves (obvious duplicate rules violation) are rejected and count as invalid attempts."""
     client.post('/register', data={'username': 'game_user', 'password': 'password123'})
@@ -280,6 +294,12 @@ def test_sri_leaderboard_sorting(client, init_database):
     assert b"userb" in response.data
     assert b"usera" in response.data
     assert b"userc" not in response.data
+    
+    # Assert Skill Level and SRI Rating are present in response data
+    assert b"52" in response.data      # User B Skill Level
+    assert b"55.46" in response.data   # User B SRI
+    assert b"50" in response.data      # User A Skill Level
+    assert b"54.0" in response.data or b"54" in response.data     # User A SRI
 
 def test_offline_rank_change_notification(client, init_database):
     """Test that ranking shift while user is away triggers exactly one home page notification."""
@@ -440,5 +460,115 @@ def test_delete_account(client, init_database):
     
     deleted_settings = UserSettings.query.filter_by(user_id=user_id).first()
     assert deleted_settings is None
+
+def test_difficulty_transition_game_generation(client, init_database):
+    """Test that transitioning difficulty from EASY to MEDIUM correctly generates a MEDIUM game on play."""
+    client.post('/register', data={'username': 'transition_user', 'password': 'password123'})
+    client.post('/login', data={'username': 'transition_user', 'password': 'password123'})
+    client.post('/home/select-difficulty', data={'difficulty': 'EASY'}) # Starting score = 20
+    
+    user = User.query.filter_by(username='transition_user').first()
+    
+    # Manually adjust skill score to 35 so that a win (+14) will transition difficulty to MEDIUM (>= 40)
+    user.profile.skill_score = 35
+    db.session.commit()
+    
+    # Generate the EASY game
+    client.get('/game')
+    game = Game.query.filter_by(user_id=user.id, status='active').first()
+    assert game.difficulty == 'EASY'
+    
+    # Solve the game to trigger winning and difficulty update
+    solution_grid = json.loads(game.solution)
+    board_grid = [list(r) for r in solution_grid]
+    
+    correct_value = board_grid[0][0]
+    board_grid[0][0] = 0
+    game.current_board = json.dumps(board_grid)
+    
+    initial_grid = json.loads(game.initial_board)
+    initial_grid[0][0] = 0
+    game.initial_board = json.dumps(initial_grid)
+    db.session.commit()
+    
+    # Complete match
+    response = client.post('/game/api/move', json={
+        'row': 0,
+        'col': 0,
+        'value': correct_value
+    })
+    assert response.status_code == 200
+    res_data = json.loads(response.data)
+    assert res_data['won'] is True
+    
+    # Verify profile transitioned to MEDIUM difficulty
+    db.session.refresh(user.profile)
+    assert user.profile.skill_score == 49 # 35 + 8 (completed) + 6 (speed bonus)
+    assert user.profile.current_difficulty == 'MEDIUM'
+    
+    # Start a new game and assert its difficulty is MEDIUM
+    client.get('/game')
+    new_game = Game.query.filter_by(user_id=user.id, status='active').first()
+    assert new_game is not None
+    assert new_game.difficulty == 'MEDIUM'
+    
+    # Verify no other active game exists
+    assert Game.query.filter_by(user_id=user.id, status='active').count() == 1
+
+def test_mistake_rating_penalty(client, init_database):
+    """Test that a mistake penalty of -1 is correctly applied to rating on resignation."""
+    client.post('/register', data={'username': 'mistake_user', 'password': 'password123'})
+    client.post('/login', data={'username': 'mistake_user', 'password': 'password123'})
+    client.post('/home/select-difficulty', data={'difficulty': 'EASY'}) # Starting score = 20
+    
+    user = User.query.filter_by(username='mistake_user').first()
+    
+    # Start game
+    client.get('/game')
+    game = Game.query.filter_by(user_id=user.id, status='active').first()
+    
+    initial_grid = json.loads(game.initial_board)
+    solution_grid = json.loads(game.solution)
+    
+    # Find a rule-valid incorrect value for an empty cell
+    r, c, wrong_value = None, None, None
+    for row in range(9):
+        for col in range(9):
+            if initial_grid[row][col] == 0:
+                temp_board = Board.from_rows(initial_grid)
+                for val in range(1, 10):
+                    if val != solution_grid[row][col] and temp_board.is_valid_move(row, col, val):
+                        r, c = row, col
+                        wrong_value = val
+                        break
+            if r is not None:
+                break
+        if r is not None:
+            break
+            
+    assert r is not None
+    
+    # Place incorrect move (mistake)
+    response = client.post('/game/api/move', json={
+        'row': r,
+        'col': c,
+        'value': wrong_value
+    })
+    assert response.status_code == 200
+    res_data = json.loads(response.data)
+    assert res_data['correct'] is True
+    assert res_data['solution_match'] is False
+    
+    # Verify mistakes counter incremented in DB
+    db.session.refresh(game)
+    assert game.mistakes == 1
+    
+    # Resign game to trigger rating drop
+    client.post('/game/api/restart')
+    
+    # Easy (20) - incomplete penalty (6) - mistake penalty (1) = 13
+    db.session.refresh(user.profile)
+    assert user.profile.skill_score == 13
+
 
 

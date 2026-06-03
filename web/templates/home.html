@@ -29,8 +29,8 @@
             <div class="card-body">
                 <div class="rating-display-container">
                     <div class="rating-circle">
-                        <span class="rating-value" id="sri-rating-value">{{ sri|round(2) if sri else profile.skill_score }}</span>
-                        <span class="rating-label">{% if sri %}SRI Rating{% else %}Skill Level{% endif %}</span>
+                        <span class="rating-value" id="sri-rating-value">{{ profile.skill_score }}</span>
+                        <span class="rating-label">Skill Level</span>
                     </div>
                 </div>
                 

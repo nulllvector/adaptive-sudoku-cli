@@ -19,7 +19,8 @@ The core game engine operates on **Test-Driven Development (TDD)** principles, u
 *   **Personalized Ratings:** Start by selecting your initial difficulty (Beginner, Easy, Medium, Hard, Expert) to establish your baseline score (0, 20, 40, 60, 80).
 *   **Automated Scaling Adjustments:** Your score dynamically increases or decreases based on completion time and hint counts using the adaptive player model.
 *   **Invalid Attempt Penalties:** Obvious duplicate rule violations deduct `0.5` points per attempt (rounded at completion).
-*   **Restart Resignations:** Clicking the **[ Resign Game ]** button abandons the current grid, applying a standard incomplete penalty (`-6` points) and showing your drops.
+*   **Mistake Penalties:** Placing incorrect numbers that violate the final solution grid incurs a rating penalty of `-1` point per mistake, which is applied upon game completion or resignation.
+*   **Restart Resignations:** Resigning/restarting a game abandons the grid, applying a standard incomplete penalty (`-6` points) plus any accumulated mistake penalties.
 *   **Logical Boundary Mapping:** Smooth tier progression using strict inequality boundaries:
     *   **Beginner:** Score $< 20$ (Starting: 0)
     *   **Easy:** Score $20 \le \text{Score} < 40$ (Starting: 20)
@@ -30,11 +31,12 @@ The core game engine operates on **Test-Driven Development (TDD)** principles, u
 ### 🏆 Leaderboard & Rankings
 *   **Skill Rank Index (SRI):** Qualifiers (solvers with at least 3 completed games) are ranked dynamically using the custom formula:  
     $$\text{SRI} = \text{skill\_score} + (\sqrt{\text{games\_played}} \times 2)$$
+*   **Dual-Metric Rankings:** The leaderboard table displays both raw **Skill Level** (the current skill score) and **SRI Rating** side-by-side, along with rank badges, player difficulty tags, and puzzle completion counts.
 *   **Offline Rank Notifications:** If another player climbs past you on the leaderboard while you are offline, you will receive a custom alert banner on your next login!
-*   **Consistent Visual Tier Display:** The difficulty tier shown next to your rating on the dashboard and leaderboard matches your actual displayed score (SRI or Skill score) rather than lagging behind the raw MMR.
 
 ### 🔒 Accounts & Preferences
 *   **Secure Authentication:** User signup and login sessions backed by salted Bcrypt password hashes and session cookies.
+*   **Clean Active-Game Handlers:** Starting onboarding or resetting your profile automatically finds and abandons **all** active games associated with your account.
 *   **Persistent In-Progress Games:** If you log out or close the browser mid-session, the grid and timer are stored securely. Resume exactly where you left off.
 *   **User Preferences:** Toggle light/dark themes, the active game timer, and real-time error highlight borders in Settings.
 
