@@ -121,3 +121,74 @@ def test_medium_mode_onboarding_and_mistakes_restriction(page: Page, live_server
     # Verify that the cell does NOT have the 'error-cell' class (no mistake highlights in Medium+ mode)
     cell_locator = page.locator(f"#cell-{r}-{c}")
     expect(cell_locator).not_to_have_class("error-cell")
+
+
+def test_optimistic_ui_updates(page: Page, live_server: str, app):
+    """
+    Playwright browser test for Optimistic UI updates:
+    Verify that typing a value displays it on the board immediately (0ms)
+    even when the backend API response is delayed by a slow network.
+    """
+    # 1. Register and login
+    page.goto(f"{live_server}/register")
+    page.fill("#username", "optimistic_user")
+    page.fill("#password", "password123")
+    page.click("button[type='submit']")
+    
+    # 2. Select EASY onboarding
+    page.check("input[name='difficulty'][value='EASY']")
+    page.click("#lock-difficulty-btn")
+    
+    # 3. Start game
+    page.click("#play-button")
+    expect(page).to_have_url(f"{live_server}/game")
+    
+    # 4. Set up request interception for /game/api/move to delay it by 2.0 seconds in JS
+    page.evaluate("""
+        const originalFetch = window.fetch;
+        window.fetch = async function(...args) {
+            if (args[0] === '/game/api/move' || (typeof args[0] === 'string' && args[0].includes('/game/api/move'))) {
+                await new Promise(resolve => setTimeout(resolve, 2000));
+            }
+            return originalFetch(...args);
+        };
+    """)
+    
+    # Get game grid states
+    game_data = page.evaluate("window.gameData")
+    initial_board = game_data["initial_board"]
+    solution = game_data["solution"]
+    
+    # Find an empty cell
+    r, c = None, None
+    for row in range(9):
+        for col in range(9):
+            if initial_board[row][col] == 0:
+                r, c = row, col
+                break
+        if r is not None:
+            break
+            
+    assert r is not None
+    
+    # 5. Click the cell and input correct solution value
+    page.click(f"#cell-{r}-{c}")
+    val_to_press = solution[r][c]
+    
+    # Record the time before input
+    import time
+    start_input = time.time()
+    page.keyboard.press(str(val_to_press))
+    
+    # 6. Assert that the value appears IMMEDIATELY (well before 2 seconds)
+    cell_value_locator = page.locator(f"#cell-{r}-{c} .cell-value")
+    # Wait briefly to let the UI thread execute, but far less than 2.0s
+    page.wait_for_timeout(100)
+    
+    expect(cell_value_locator).to_have_text(str(val_to_press))
+    elapsed_time = time.time() - start_input
+    
+    # The elapsed time for rendering must be very low (< 0.5 seconds)
+    assert elapsed_time < 0.5, f"Optimistic UI update took too long: {elapsed_time}s"
+
+

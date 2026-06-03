@@ -164,26 +164,48 @@ document.addEventListener('DOMContentLoaded', () => {
         const valSpan = cell.querySelector('.cell-value');
         const pencilNotesGrid = cell.querySelector('.pencil-notes-grid');
 
+        // Helper to revert move if backend rejects it or fails
+        function revertMove(r, c, prevVal, targetCell, targetValSpan) {
+            currentBoard[r][c] = prevVal;
+            if (prevVal === 0) {
+                targetValSpan.textContent = '';
+                targetCell.classList.remove('player-cell', 'error-cell', 'hint-cell');
+            } else {
+                targetValSpan.textContent = prevVal;
+                targetCell.classList.add('player-cell');
+                const showErrors = (game.difficulty === 'BEGINNER' || game.difficulty === 'EASY');
+                if (game.settings.highlight_errors && showErrors && prevVal !== solution[r][c]) {
+                    targetCell.classList.add('error-cell');
+                }
+            }
+            selectCell(activeRow, activeCol);
+        }
+
         // Handle erasure
         if (value === 0) {
+            const previousValue = currentBoard[activeRow][activeCol];
             currentBoard[activeRow][activeCol] = 0; // Sync client state board
             valSpan.textContent = '';
             cell.classList.remove('player-cell', 'error-cell', 'hint-cell');
             pencilNotesGrid.querySelectorAll('.pencil-note').forEach(n => n.textContent = '');
             
-            // Sync with backend API
+            // Re-highlight the same value cells instantly
+            selectCell(activeRow, activeCol);
+
+            // Sync with backend API in the background
             try {
-                await fetch('/game/api/move', {
+                const response = await fetch('/game/api/move', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ row: activeRow, col: activeCol, value: 0 })
                 });
+                if (!response.ok) {
+                    revertMove(activeRow, activeCol, previousValue, cell, valSpan);
+                }
             } catch (err) {
                 console.error("Failed to sync erase:", err);
+                revertMove(activeRow, activeCol, previousValue, cell, valSpan);
             }
-            
-            // Re-highlight the same value cells
-            selectCell(activeRow, activeCol);
             return;
         }
 
@@ -216,7 +238,19 @@ document.addEventListener('DOMContentLoaded', () => {
         // Clear notes if placing normal cell value
         pencilNotesGrid.querySelectorAll('.pencil-note').forEach(n => n.textContent = '');
 
-        // POST move to backend server API
+        // 1. Instantly display the value on the grid (Optimistic Update)
+        const previousValue = currentBoard[activeRow][activeCol];
+        currentBoard[activeRow][activeCol] = value;
+        valSpan.textContent = value;
+        cell.classList.add('player-cell');
+        
+        // Remove error/hint styling initially when typing a new value
+        cell.classList.remove('error-cell', 'hint-cell');
+        
+        // Re-highlight selection to update same-value indicators instantly
+        selectCell(activeRow, activeCol);
+
+        // 2. Send API request in the background
         try {
             const response = await fetch('/game/api/move', {
                 method: 'POST',
@@ -224,11 +258,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: JSON.stringify({ row: activeRow, col: activeCol, value: value })
             });
 
-            if (!response.ok) return;
+            if (!response.ok) {
+                revertMove(activeRow, activeCol, previousValue, cell, valSpan);
+                return;
+            }
             const data = await response.json();
 
             if (data.invalid) {
-                // Obvious duplicate conflicts -> block entry, flash red shake animation
+                // Revert and flash red
+                revertMove(activeRow, activeCol, previousValue, cell, valSpan);
                 cell.classList.add('invalid-flash');
                 setTimeout(() => cell.classList.remove('invalid-flash'), 500);
                 return;
@@ -249,12 +287,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
+            // Update error classes based on server verification
             if (data.correct) {
-                currentBoard[activeRow][activeCol] = value; // Sync client state board
-                valSpan.textContent = value;
-                cell.classList.add('player-cell');
-
-                // Error highlight settings (only for Beginner and Easy)
                 const showErrors = (game.difficulty === 'BEGINNER' || game.difficulty === 'EASY');
                 if (game.settings.highlight_errors && showErrors) {
                     if (data.solution_match === false) {
@@ -265,12 +299,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else {
                     cell.classList.remove('error-cell');
                 }
-                
-                // Re-highlight select to update "same-value-cell" indicators
-                selectCell(activeRow, activeCol);
             }
         } catch (err) {
             console.error("Failed to post move:", err);
+            revertMove(activeRow, activeCol, previousValue, cell, valSpan);
         }
     }
 
